@@ -14,13 +14,26 @@ P0HEIGHT equ 9
 	org $80
 ;;;;  start variable declarations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-P0x	byte	; P0 x
-P0y	byte	; P0 y
-P0xdir	byte	; x velocity + / - / 0
-P0ydir	byte	; y velocity + / - / 0
-CTRLPF_shadow	byte	; track content of CTRLPF
-PFcolor	byte	; dynamic playfield color
-P0spritePtr	ds.w	; y-adjusted sprite pointer
+P0x	byte	; (80) P0 x
+P0y	byte	; (81) P0 y
+CTRLPF_shadow	byte	; (82) track content of CTRLPF
+digitLine	byte	; (83) track the line of digit being drawn
+PFcolor	byte	; (85) track color of Playfield
+leftDigitOffset0	byte	; (86) digit array offset for left digit 0
+leftDigitOffset1	byte	; (87) digit array offset for left digit 1
+leftDigitOffset2	byte	; (88) digit array offset for left digit 2
+leftDigitOffset3	byte	; (89) digit array offset for left digit 3
+leftDigitOffset4	byte	; (8a) digit array offset for left digit 4
+leftDigitOffset5	byte	; (8b) digit array offset for left digit 5
+leftDigitOffset6	byte	; (8c) digit array offset for left digit 6
+leftDigitOffset7	byte	; (8d) digit array offset for left digit 7
+leftDigitOffset8	byte	; (8e) digit array offset for left digit 8
+leftDigitOffset9	byte	; (8f) digit array offset for left digit 9
+leftDigitOffset10	byte	; (90) digit array offset for left digit 10 
+leftDigitOffset11	byte	; (91) digit array offset for left digit 11 
+P0spritePtr	word	; (92) y-adjusted sprite pointer
+digitTablePointer	word	; (94) pointer to digit table
+scanLine	byte	; track current scan line
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end variables
 
@@ -33,16 +46,49 @@ Start:
 
 ;;;;  start variable initialization
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	lda #50
+	lda #79
 	sta P0x
+	lda #106
 	sta P0y
-
-	lda #1
-	sta P0ydir
-	sta P0xdir
+	sta COLUBK
 
 	lda #0
+	sta digitLine
+
+	lda #55
 	sta PFcolor
+
+;;; Initially fill offsets with consecutive digits
+	lda #$a0
+	sta leftDigitOffset0
+	lda #$00
+	sta leftDigitOffset1
+	lda #$10
+	sta leftDigitOffset2
+	lda #$20
+	sta leftDigitOffset3
+	lda #$30
+	sta leftDigitOffset4
+	lda #$40
+	sta leftDigitOffset5
+	lda #$50
+	sta leftDigitOffset6
+	lda #$60
+	sta leftDigitOffset7
+	lda #$70
+	sta leftDigitOffset8
+	lda #$80
+	sta leftDigitOffset9
+	lda #$90
+	sta leftDigitOffset10
+	lda #$a0
+	sta leftDigitOffset11
+	
+;;; Set digitTablePointer
+	lda #<digitTable
+	sta digitTablePointer
+	lda #>digitTable
+	sta digitTablePointer+1
 
 ;;; Set high byte of P0spritePtr (low byte updated per frame)
 	lda #>P0bitmap
@@ -82,97 +128,61 @@ CheckP0Up:
 	lda #%00010000
 	bit SWCHA
 	bne CheckP0Down
-	lda #1
-	clc
-	adc P0ydir
-	sta P0ydir
-	lda #%00000010	; 0 or 1 are ok, 2 is not
-	bit P0ydir
-	beq CheckP0Down	; if it's not 2 we are good
-	lda #1		; if it is 2 set to 1
-	sta P0ydir
+	inc P0y
 CheckP0Down:
 	lda #%00100000
 	bit SWCHA
 	bne CheckP0Right
-	lda #%00000010	; set for -1, not for 0 or 1
-	bit P0ydir
-	bne CheckP0Right; -1 is the lowest so don't change it
-	lda P0ydir
-	clc
-	adc #-1
-	sta P0ydir
+	dec P0y
 CheckP0Right:
 	lda #%10000000
 	bit SWCHA
 	bne CheckP0Left
-	lda #1
-	clc
-	adc P0xdir
-	sta P0xdir
-	lda #%00000010
-	bit P0xdir
-	beq CheckP0Left
-	lda #1
-	sta P0xdir
+	inc P0x
 CheckP0Left:
 	lda #%01000000
 	bit SWCHA
 	bne NoInput
-	lda #-1
-	lda #%00000010	; set for -1, not for 0 or 1
-	bit P0xdir
-	bne NoInput	; -1 is the lowest so dont change
-	lda P0xdir
-	clc
-	adc #-1
-	sta P0xdir
+	dec P0x
 NoInput:
-;;; calculate P0 x position
+
+;;; P0x bounds checking
 	lda P0x
 	cmp #4
 	beq P0xLow
 	cmp #156	; 160 pixels minus 1/2 of 4-wide sprite
 	beq P0xHigh
-	lda P0xdir
-	jmp P0xMove
+	jmp P0xDone
 P0xLow:
-	lda #1
-	sta P0xdir
-	jmp P0xMove
-P0xHigh:
-	lda #-1
-	sta P0xdir
-P0xMove:
-	clc
-	adc P0x
+	lda #5
 	sta P0x
+	jmp P0xDone
+P0xHigh:
+	lda #155
+	sta P0x
+P0xDone:
 ;;; update horizontal position
 	ldx #0
-;	lda P0x ; not needed if already in A
+	lda P0x 
 	jsr PosObject
 	sta WSYNC
 	sta HMOVE
 
-;;; update P0 y position
+;;; P0 y bounds checking
 	lda P0y
 	cmp #8
 	beq P0yLow
 	cmp #192
 	beq P0yHigh
-	lda P0ydir
-	jmp P0yMove
+	jmp P0yDone
 P0yLow:
-	lda #1
-	sta P0ydir
-	jmp P0yMove
-P0yHigh:
-	lda #-1
-	sta P0ydir
-P0yMove:
-	clc
-	adc P0y
+	lda #9
 	sta P0y
+	jmp P0yDone
+P0yHigh:
+	lda #191
+	sta P0y
+P0yDone:
 	
 ;;; P0 y pointer
 	lda #<P0bitmap+P0HEIGHT
@@ -184,12 +194,12 @@ P0yMove:
 	lda #%10000000
 	bit CXP0FB	; bit 7 = P0/PF
 	beq NoP0Collision
-	inc PFcolor	; add one to PFcolor
+;	inc PFcolor	; add one to PFcolor
 	lda PFcolor
 	sta COLUPF
 	jmp DoneCollision
 NoP0Collision
-	lda #0
+	lda #$FF
 	sta COLUPF
 DoneCollision
 	sta CXCLR	; clear collisions
@@ -200,7 +210,10 @@ DoneCollision
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  start kernel prep
-	ldy #192	; counter
+	lda #0
+	ldx #$0		; row number starts at 0 every page
+	lda #192	; 
+	sta scanLine	; counter
 ;;;;  end kernel prep
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -212,31 +225,32 @@ DoneCollision
 	sta VBLANK	; turn off VBlank. A is zero because of bne above
 
 ;;;; kernel (192 visible scan lines)
+;;;; Playfield Register Update Cycles
+;;;; PF0L - 54-22
+;;;; PF1L - 65-28
+;;;; PF2L -  0-38
+;;;; PF0R - 28-49
+;;;; PF1R - 39-54
+;;;; PF2R - 49-65
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .LoopVisible:
 	sta WSYNC	; 3|0 wait for scanline at beginning so end-of
-			;    loop logic is pre-scanline
-;;; background (9)
-;	tya		; 2| get scan line
-;	asl		; 2| 192 scan lines, 128 unique colors (last bit unused)
-			;    x2 means we see all of them with some repeats
-;	ora #%00001000	; 2| don't use luminance < 8
-			;    (this makes a tight repeat.. if only i could asl the right nibble)
-	sty COLUBK	; 3| (9) set bg color to result
-; 12 
-;;; left playfield (21)
-	lda pf1l,Y	; 4|
-	sta PF1		; 3| 	after 65, before 28
-	lda pf2l,Y	; 4|
-	sta PF2		; 3|	after  0, before 38
-; 30
-;;; draw P0 (21)
+			;     loop logic is pre-scanline
+;;; left playfield digit (18)
+	lda digitLine		; 3|
+	clc			; 2|
+	adc leftDigitOffset0,X	; 4|
+	tay			; 2|
+	lda digitTable,Y	; 4|
+	sta PF1			; 3|
+
+;;; draw P0 (24)
+	ldy scanLine	; 3|
 	sec		; 2| set carry
 	tya		; 2|
 	sbc P0y		; 3|
 	adc P0HEIGHT	; 3|
 	bcs .DrawP0	; 2/3|
-;
 	nop		; 2|
 	nop		; 2|
 	sec		; 2|
@@ -245,21 +259,21 @@ DoneCollision
 	lda (P0spritePtr),Y	; 5|
 	sta GRP0	; 3|
 .NoDrawP0
-; 51
 
-;;; right playfield (21)
-	lda pf0r,Y	; 4|
-	sta PF0		; 3|	after 28, before 49
-	lda pf1r,Y	; 4|
-	sta PF1		; 3| 	after 39, before 54
-	lda pf2r,Y	; 4|
-	sta PF2		; 3|	after 49, before 65
+;;; right playfield
 
-;;; left pf0
-	lda pf0l+1,Y	; 4|
-	sta PF0		; 3| 	after 54, before 22
+;;; digit cleanup (19)
+	inc digitLine	; 5|
+	lda #%00010000	; 2|
+	and digitLine	; 3|
+	beq stillInDigit; 2/3|
+	inx		; 2| digit row ++
+	lda #0		; 2| 
+	sta digitLine	; 3| digit line reset
+stillInDigit:
+
 ;;; end loop (cycles <= 67 here to avoid wrap)
-	dey		; 2| y--
+	dec scanLine		; 5| scanLine--
 	bne .LoopVisible	; 2/3/4| go back until x = 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end kernel
@@ -333,20 +347,21 @@ PosObject SUBROUTINE
 ;;;;  start ROM lookup tables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;; playfield.h should set pfdata[lr]pf[012] labels and each table should be one page
-	include "playfield.h"
+;;; digits.h should set digitTable at the beginning followed by
+;;;          an array of 16 bytes for each digit 0-9
+	include "digits.h"
 
 	org $fef6
 P0bitmap:
 	byte #%00000000
-	byte #%00101001
-	byte #%01101001
-	byte #%10101001
-	byte #%00101001
-	byte #%00101111
-	byte #%00101001
-	byte #%00101001
-	byte #%11101001
+	byte #%11000010
+	byte #%00100101
+	byte #%00100100
+	byte #%00100100
+	byte #%00100100
+	byte #%00100100
+	byte #%00100100
+	byte #%11111111
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end ROM lookup tables
