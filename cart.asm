@@ -18,19 +18,36 @@ P0x	byte	; (80) P0 x
 P0y	byte	; (81) P0 y
 CTRLPF_shadow	byte	; (82) track content of CTRLPF
 digitLine	byte	; (83) track the line of digit being drawn
+frameOdd	byte	; (84) odd or even frame
 PFcolor	byte	; (85) track color of Playfield
-leftDigitOffset0	byte	; (86) digit array offset for left digit 0
-leftDigitOffset1	byte	; (87) digit array offset for left digit 1
-leftDigitOffset2	byte	; (88) digit array offset for left digit 2
-leftDigitOffset3	byte	; (89) digit array offset for left digit 3
-leftDigitOffset4	byte	; (8a) digit array offset for left digit 4
-leftDigitOffset5	byte	; (8b) digit array offset for left digit 5
-leftDigitOffset6	byte	; (8c) digit array offset for left digit 6
-leftDigitOffset7	byte	; (8d) digit array offset for left digit 7
-leftDigitOffset8	byte	; (8e) digit array offset for left digit 8
-leftDigitOffset9	byte	; (8f) digit array offset for left digit 9
-leftDigitOffset10	byte	; (90) digit array offset for left digit 10 
-leftDigitOffset11	byte	; (91) digit array offset for left digit 11 
+
+	org $90
+leftDigitOffset0	byte	;  digit array offset for left digit 0
+leftDigitOffset1	byte	;  digit array offset for left digit 1
+leftDigitOffset2	byte	;  digit array offset for left digit 2
+leftDigitOffset3	byte	;  digit array offset for left digit 3
+leftDigitOffset4	byte	;  digit array offset for left digit 4
+leftDigitOffset5	byte	;  digit array offset for left digit 5
+leftDigitOffset6	byte	;  digit array offset for left digit 6
+leftDigitOffset7	byte	;  digit array offset for left digit 7
+leftDigitOffset8	byte	;  digit array offset for left digit 8
+leftDigitOffset9	byte	;  digit array offset for left digit 9
+leftDigitOffset10	byte	;  digit array offset for left digit 10 
+leftDigitOffset11	byte	;  digit array offset for left digit 11 
+
+	org $a0
+rightDigitOffset0	byte	;  digit array offset for left digit 0
+rightDigitOffset1	byte	;  digit array offset for left digit 1
+rightDigitOffset2	byte	;  digit array offset for left digit 2
+rightDigitOffset3	byte	;  digit array offset for left digit 3
+rightDigitOffset4	byte	;  digit array offset for left digit 4
+rightDigitOffset5	byte	;  digit array offset for left digit 5
+rightDigitOffset6	byte	;  digit array offset for left digit 6
+rightDigitOffset7	byte	;  digit array offset for left digit 7
+rightDigitOffset8	byte	;  digit array offset for left digit 8
+rightDigitOffset9	byte	;  digit array offset for left digit 9
+rightDigitOffset10	byte	;  digit array offset for left digit 10 
+rightDigitOffset11	byte	;  digit array offset for left digit 11 
 P0spritePtr	word	; (92) y-adjusted sprite pointer
 digitTablePointer	word	; (94) pointer to digit table
 scanLine	byte	; track current scan line
@@ -55,34 +72,49 @@ Start:
 	lda #0
 	sta digitLine
 
+	lda #%00000000
+	sta frameOdd
+
 	lda #55
 	sta PFcolor
 
 ;;; Initially fill offsets with consecutive digits
 	lda #$a0
 	sta leftDigitOffset0
+	sta rightDigitOffset11
 	lda #$00
 	sta leftDigitOffset1
+	sta rightDigitOffset10
 	lda #$10
 	sta leftDigitOffset2
+	sta rightDigitOffset9
 	lda #$20
 	sta leftDigitOffset3
+	sta rightDigitOffset8
 	lda #$30
 	sta leftDigitOffset4
+	sta rightDigitOffset7
 	lda #$40
 	sta leftDigitOffset5
+	sta rightDigitOffset6
 	lda #$50
 	sta leftDigitOffset6
+	sta rightDigitOffset5
 	lda #$60
 	sta leftDigitOffset7
+	sta rightDigitOffset4
 	lda #$70
 	sta leftDigitOffset8
+	sta rightDigitOffset3
 	lda #$80
 	sta leftDigitOffset9
+	sta rightDigitOffset2
 	lda #$90
 	sta leftDigitOffset10
+	sta rightDigitOffset1
 	lda #$a0
 	sta leftDigitOffset11
+	sta rightDigitOffset0
 	
 ;;; Set digitTablePointer
 	lda #<digitTable
@@ -204,6 +236,11 @@ NoP0Collision
 DoneCollision
 	sta CXCLR	; clear collisions
 
+;;; toggle frameOdd
+	lda frameOdd
+	eor #%01000000
+	sta frameOdd
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end game vblank logic
 
@@ -224,6 +261,11 @@ DoneCollision
 	sta WSYNC 	; wait for next wsync
 	sta VBLANK	; turn off VBlank. A is zero because of bne above
 
+;;; pick which loop
+	bit frameOdd
+	bvc .EvenLoop
+	bvs .OddLoop
+
 ;;;; kernel (192 visible scan lines)
 ;;;; Playfield Register Update Cycles
 ;;;; PF0L - 54-22
@@ -233,9 +275,10 @@ DoneCollision
 ;;;; PF1R - 39-54
 ;;;; PF2R - 49-65
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.LoopVisible:
+.EvenLoop:
 	sta WSYNC	; 3|0 wait for scanline at beginning so end-of
 			;     loop logic is pre-scanline
+;;;;;; start even frame 
 ;;; left playfield digit (18)
 	lda digitLine		; 3|
 	clc			; 2|
@@ -243,41 +286,98 @@ DoneCollision
 	tay			; 2|
 	lda digitTable,Y	; 4|
 	sta PF1			; 3|
-
+; 18
 ;;; draw P0 (24)
 	ldy scanLine	; 3|
 	sec		; 2| set carry
 	tya		; 2|
 	sbc P0y		; 3|
-	adc P0HEIGHT	; 3|
-	bcs .DrawP0	; 2/3|
+	adc #P0HEIGHT	; 3|
+	bcs .DrawP0a	; 2/3|
 	nop		; 2|
 	nop		; 2|
 	sec		; 2|
-	bcs .NoDrawP0	; 3|
-.DrawP0
+	bcs .NoDrawP0a	; 3|
+.DrawP0a
 	lda (P0spritePtr),Y	; 5|
 	sta GRP0	; 3|
-.NoDrawP0
+.NoDrawP0a
 
-;;; right playfield
+; 42
+;;; clear PF1 for right digit (6)
+	lda #0		; 3|
+	sta PF1		; 3| (48)
 
-;;; digit cleanup (19)
-	inc digitLine	; 5|
+; 48
+;;; digit cleanup (13/19)
+.DigitCleana
+	inc digitLine	; 5| 
 	lda #%00010000	; 2|
 	and digitLine	; 3|
-	beq stillInDigit; 2/3|
+	beq stillInDigita; 2/3|
 	inx		; 2| digit row ++
 	lda #0		; 2| 
 	sta digitLine	; 3| digit line reset
-stillInDigit:
+stillInDigita:
 
+; 59 / 67
 ;;; end loop (cycles <= 67 here to avoid wrap)
 	dec scanLine		; 5| scanLine--
-	bne .LoopVisible	; 2/3/4| go back until x = 0
+	bne .EvenLoop
+	beq .Overscan
+
+;;;; start odd frame
+.OddLoop
+	sta WSYNC 	; 3| 0
+;;; clear PF1 for left digit (6)
+	lda #0		; 3|
+	sta PF1		; 3|
+
+; 6
+;;; draw P0 (24)
+	ldy scanLine	; 3|
+	sec		; 2| set carry
+	tya		; 2|
+	sbc P0y		; 3|
+	adc #P0HEIGHT	; 3|
+	bcs .DrawP0b	; 2/3|
+	nop		; 2|
+	nop		; 2|
+	sec		; 2|
+	bcs .NoDrawP0b	; 3|
+.DrawP0b
+	lda (P0spritePtr),Y	; 5|
+	sta GRP0	; 3|
+.NoDrawP0b
+
+; 30
+;;; right playfield digit (18)
+	lda digitLine		; 3|
+	clc			; 2|
+	adc rightDigitOffset0,X	; 4|
+	tay			; 2|
+	lda digitTable,Y	; 4|
+	sta PF1			; 3|
+
+; 48
+;;; digit cleanup (13/19)
+.DigitCleanb
+	inc digitLine	; 5| 
+	lda #%00010000	; 2|
+	and digitLine	; 3|
+	beq stillInDigitb; 2/3|
+	inx		; 2| digit row ++
+	lda #0		; 2| 
+	sta digitLine	; 3| digit line reset
+stillInDigitb:
+; 61 / 67
+;;; end loop (cycles <= 67 here to avoid wrap)
+	dec scanLine		; 5| scanLine--
+	bne .OddLoop	; 2/3/4| go back until x = 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end kernel
 
+.Overscan
 ;;;; set timer for OVERSCAN
 	lda #2
 	sta WSYNC
