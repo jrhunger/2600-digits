@@ -20,34 +20,35 @@ CTRLPF_shadow	byte	; (82) track content of CTRLPF
 digitLine	byte	; (83) track the line of digit being drawn
 frameOdd	byte	; (84) odd or even frame
 PFcolor	byte	; (85) track color of Playfield
+HoleIndex	byte	; (86) index for current hole
 
 	org $90
-leftDigitOffset0	byte	;  digit array offset for left digit 0
-leftDigitOffset1	byte	;  digit array offset for left digit 1
-leftDigitOffset2	byte	;  digit array offset for left digit 2
-leftDigitOffset3	byte	;  digit array offset for left digit 3
-leftDigitOffset4	byte	;  digit array offset for left digit 4
-leftDigitOffset5	byte	;  digit array offset for left digit 5
-leftDigitOffset6	byte	;  digit array offset for left digit 6
-leftDigitOffset7	byte	;  digit array offset for left digit 7
-leftDigitOffset8	byte	;  digit array offset for left digit 8
-leftDigitOffset9	byte	;  digit array offset for left digit 9
-leftDigitOffset10	byte	;  digit array offset for left digit 10 
-leftDigitOffset11	byte	;  digit array offset for left digit 11 
+DigitOffsetL0	byte	;  digit array offset for left digit 0
+DigitOffsetL1	byte	;  digit array offset for left digit 1
+DigitOffsetL2	byte	;  digit array offset for left digit 2
+DigitOffsetL3	byte	;  digit array offset for left digit 3
+DigitOffsetL4	byte	;  digit array offset for left digit 4
+DigitOffsetL5	byte	;  digit array offset for left digit 5
+DigitOffsetL6	byte	;  digit array offset for left digit 6
+DigitOffsetL7	byte	;  digit array offset for left digit 7
+DigitOffsetL8	byte	;  digit array offset for left digit 8
+DigitOffsetL9	byte	;  digit array offset for left digit 9
+DigitOffsetL10	byte	;  digit array offset for left digit 10 
+DigitOffsetL11	byte	;  digit array offset for left digit 11 
 
 	org $a0
-rightDigitOffset0	byte	;  digit array offset for left digit 0
-rightDigitOffset1	byte	;  digit array offset for left digit 1
-rightDigitOffset2	byte	;  digit array offset for left digit 2
-rightDigitOffset3	byte	;  digit array offset for left digit 3
-rightDigitOffset4	byte	;  digit array offset for left digit 4
-rightDigitOffset5	byte	;  digit array offset for left digit 5
-rightDigitOffset6	byte	;  digit array offset for left digit 6
-rightDigitOffset7	byte	;  digit array offset for left digit 7
-rightDigitOffset8	byte	;  digit array offset for left digit 8
-rightDigitOffset9	byte	;  digit array offset for left digit 9
-rightDigitOffset10	byte	;  digit array offset for left digit 10 
-rightDigitOffset11	byte	;  digit array offset for left digit 11 
+DigitOffsetR0	byte	;  digit array offset for left digit 0
+DigitOffsetR1	byte	;  digit array offset for left digit 1
+DigitOffsetR2	byte	;  digit array offset for left digit 2
+DigitOffsetR3	byte	;  digit array offset for left digit 3
+DigitOffsetR4	byte	;  digit array offset for left digit 4
+DigitOffsetR5	byte	;  digit array offset for left digit 5
+DigitOffsetR6	byte	;  digit array offset for left digit 6
+DigitOffsetR7	byte	;  digit array offset for left digit 7
+DigitOffsetR8	byte	;  digit array offset for left digit 8
+DigitOffsetR9	byte	;  digit array offset for left digit 9
+DigitOffsetR10	byte	;  digit array offset for left digit 10 
+DigitOffsetR11	byte	;  digit array offset for left digit 11 
 P0spritePtr	word	; (92) y-adjusted sprite pointer
 digitTablePointer	word	; (94) pointer to digit table
 scanLine	byte	; track current scan line
@@ -78,43 +79,47 @@ Start:
 	lda #55
 	sta PFcolor
 
-;;; Initially fill offsets with consecutive digits
-	lda #$a0
-	sta leftDigitOffset0
-	sta rightDigitOffset11
-	lda #$00
-	sta leftDigitOffset1
-	sta rightDigitOffset10
-	lda #$10
-	sta leftDigitOffset2
-	sta rightDigitOffset9
-	lda #$20
-	sta leftDigitOffset3
-	sta rightDigitOffset8
-	lda #$30
-	sta leftDigitOffset4
-	sta rightDigitOffset7
+	lda #4
+	sta HoleIndex		; initial hole 3
+
+;;; Initialize digits
+	lda #$a0		; blank
+	sta DigitOffsetL0
+	sta DigitOffsetR11
+	sta DigitOffsetL4	; initial hole 3
+	lda #$00		; 0
+	sta DigitOffsetL1
+	sta DigitOffsetR10
+	lda #$10		; 1
+	sta DigitOffsetL2
+	sta DigitOffsetR9
+	lda #$20		; 2
+	sta DigitOffsetL3
+	sta DigitOffsetR8
+	lda #$30		; 3
+	;sta DigitOffsetL4	; it's the hole, for pi
+	sta DigitOffsetR7
 	lda #$40
-	sta leftDigitOffset5
-	sta rightDigitOffset6
+	sta DigitOffsetL5
+	sta DigitOffsetR6
 	lda #$50
-	sta leftDigitOffset6
-	sta rightDigitOffset5
+	sta DigitOffsetL6
+	sta DigitOffsetR5
 	lda #$60
-	sta leftDigitOffset7
-	sta rightDigitOffset4
+	sta DigitOffsetL7
+	sta DigitOffsetR4
 	lda #$70
-	sta leftDigitOffset8
-	sta rightDigitOffset3
+	sta DigitOffsetL8
+	sta DigitOffsetR3
 	lda #$80
-	sta leftDigitOffset9
-	sta rightDigitOffset2
+	sta DigitOffsetL9
+	sta DigitOffsetR2
 	lda #$90
-	sta leftDigitOffset10
-	sta rightDigitOffset1
+	sta DigitOffsetL10
+	sta DigitOffsetR1
 	lda #$a0
-	sta leftDigitOffset11
-	sta rightDigitOffset0
+	sta DigitOffsetL11
+	sta DigitOffsetR0
 	
 ;;; Set digitTablePointer
 	lda #<digitTable
@@ -225,15 +230,31 @@ P0yDone:
 ;;; Check collisions
 	lda #%10000000
 	bit CXP0FB	; bit 7 = P0/PF
-	beq NoP0Collision
-;	inc PFcolor	; add one to PFcolor
+	beq .NoP0Collision
 	lda PFcolor
 	sta COLUPF
-	jmp DoneCollision
-NoP0Collision
+;;;; find out where the collision happened
+	lda #192+P0HEIGHT/2	; 192 total pixels
+	sec
+	sbc P0y	; subtract y to get top-indexed P0y
+	lsr	; divide by 16
+	lsr
+	lsr
+	lsr
+	tax	; put in X
+	lda #%01000000	; bit mask for bit 6 (64)
+	bit P0x	; means between 64 and 128 (right side)
+	beq .LeftCollision
+	txa		; right is +16 of left, so
+	ora #%00010000	; add 16 (x starts 0-15)
+	tax		; and store back in X
+.LeftCollision
+	jsr DigitCapture
+	jmp .DoneCollision
+.NoP0Collision
 	lda #$FF
 	sta COLUPF
-DoneCollision
+.DoneCollision
 	sta CXCLR	; clear collisions
 
 ;;; toggle frameOdd
@@ -248,7 +269,8 @@ DoneCollision
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  start kernel prep
 	lda #0
-	ldx #$0		; row number starts at 0 every page
+	sta digitLine	; digit line starts at 0 every page
+	ldx #0		; row number starts at 0 every page
 	lda #192	; 
 	sta scanLine	; counter
 ;;;;  end kernel prep
@@ -261,12 +283,6 @@ DoneCollision
 	sta WSYNC 	; wait for next wsync
 	sta VBLANK	; turn off VBlank. A is zero because of bne above
 
-;;; pick which loop
-	bit frameOdd
-	bvc .EvenLoop
-	bvs .OddLoop
-
-;;;; kernel (192 visible scan lines)
 ;;;; Playfield Register Update Cycles
 ;;;; PF0L - 54-22
 ;;;; PF1L - 65-28
@@ -275,6 +291,17 @@ DoneCollision
 ;;;; PF1R - 39-54
 ;;;; PF2R - 49-65
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; kernel (192 visible scan lines)
+
+;;; display 12 rows of "score"
+
+;;; display 4 rows of blank
+
+;;; pick which loop
+	bit frameOdd
+	bvc .EvenLoop
+	bvs .OddLoop
+
 .EvenLoop:
 	sta WSYNC	; 3|0 wait for scanline at beginning so end-of
 			;     loop logic is pre-scanline
@@ -282,17 +309,17 @@ DoneCollision
 ;;; left playfield digit (18)
 	lda digitLine		; 3|
 	clc			; 2|
-	adc leftDigitOffset0,X	; 4|
+	adc DigitOffsetL0,X	; 4|
 	tay			; 2|
 	lda digitTable,Y	; 4|
 	sta PF1			; 3|
 ; 18
 ;;; draw P0 (24)
 	ldy scanLine	; 3|
-	sec		; 2| set carry
-	tya		; 2|
-	sbc P0y		; 3|
-	adc #P0HEIGHT	; 3|
+	sec		; 2| 5
+	tya		; 2| 7
+	sbc P0y		; 3| 10
+	adc #P0HEIGHT	; 3| 13
 	bcs .DrawP0a	; 2/3|
 	nop		; 2|
 	nop		; 2|
@@ -309,21 +336,23 @@ DoneCollision
 	sta PF1		; 3| (48)
 
 ; 48
-;;; digit cleanup (13/19)
-.DigitCleana
-	inc digitLine	; 5| 
-	lda #%00010000	; 2|
-	and digitLine	; 3|
-	beq stillInDigita; 2/3|
-	inx		; 2| digit row ++
-	lda #0		; 2| 
-	sta digitLine	; 3| digit line reset
-stillInDigita:
+;;; digit cleanup (15)
+.DigitCleanA
+	lda #%00001111	; 2|2
+	eor digitLine	; 3|5
+	beq .NewDigitA	; 2/3| 7/8
+	inc digitLine	; 5| 12
+	jmp .EndDigitCleanA	; 3| 15
+.NewDigitA:
+	inx		; 2| 10 digit row ++
+	lda #0		; 2| 12
+	sta digitLine	; 3| 15 digit line reset
+.EndDigitCleanA
 
-; 59 / 67
+; 63
 ;;; end loop (cycles <= 67 here to avoid wrap)
 	dec scanLine		; 5| scanLine--
-	bne .EvenLoop
+	bne .EvenLoop		; 3/4
 	beq .Overscan
 
 ;;;; start odd frame
@@ -354,23 +383,26 @@ stillInDigita:
 ;;; right playfield digit (18)
 	lda digitLine		; 3|
 	clc			; 2|
-	adc rightDigitOffset0,X	; 4|
+	adc DigitOffsetR0,X	; 4|
 	tay			; 2|
 	lda digitTable,Y	; 4|
 	sta PF1			; 3|
 
 ; 48
-;;; digit cleanup (13/19)
-.DigitCleanb
-	inc digitLine	; 5| 
-	lda #%00010000	; 2|
-	and digitLine	; 3|
-	beq stillInDigitb; 2/3|
-	inx		; 2| digit row ++
-	lda #0		; 2| 
-	sta digitLine	; 3| digit line reset
-stillInDigitb:
-; 61 / 67
+;;; digit cleanup (15)
+.DigitCleanB
+	lda #%00001111	; 2|2
+	eor digitLine	; 3|5
+	beq .NewDigitB	; 2/3| 7/8
+	inc digitLine	; 5| 12
+	jmp .EndDigitCleanB	; 3| 15
+.NewDigitB:
+	inx		; 2| 10 digit row ++
+	lda #0		; 2| 12
+	sta digitLine	; 3| 15 digit line reset
+.EndDigitCleanB
+
+; 63
 ;;; end loop (cycles <= 67 here to avoid wrap)
 	dec scanLine		; 5| scanLine--
 	bne .OddLoop	; 2/3/4| go back until x = 0
@@ -439,7 +471,23 @@ PosObject SUBROUTINE
 	RTS
 
 ;;; end PosObject from https://www.biglist.com/lists/stella/archives/200311/msg00039.html
-	
+
+;;; Handle digit capture
+;;; X = offset to digit in question from DigitOffsetL0
+;   left = 0-11, right = 16-27
+DigitCapture SUBROUTINE
+; save current contents
+	ldy DigitOffsetL0,X	; put current contents in Y
+; blank the spot
+	lda #$a0		; (blank digit)
+	sta DigitOffsetL0,X	; store it in captured position
+; fill previous hole
+	txa			; 
+	ldx HoleIndex		; 
+	sta HoleIndex		; 
+	tya
+	sta DigitOffsetL0,X	; store it in current hole
+	RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;   end subroutines
