@@ -19,8 +19,15 @@ P0y	byte	; (81) P0 y
 CTRLPF_shadow	byte	; (82) track content of CTRLPF
 digitLine	byte	; (83) track the line of digit being drawn
 frameOdd	byte	; (84) odd or even frame
-PFcolor	byte	; (85) track color of Playfield
+PFcolor		byte	; (85) track color of Playfield
 HoleIndex	byte	; (86) index for current hole
+scanLine	byte	; (87) track current scan line
+Scroll0		byte	; (88) digit 0 of scroll
+Scroll1		byte	; (89) digit 1 of scroll
+Scroll2		byte	; (8a) digit 2 of scroll
+Scroll3		byte	; (8b) digit 3 of scroll
+Scroll4		byte	; (8c) digit 4 of scroll
+Score		byte	; (8d) Actual Score
 
 	org $90
 DigitOffsetL0	byte	;  digit array offset for left digit 0
@@ -49,9 +56,28 @@ DigitOffsetR8	byte	;  digit array offset for left digit 8
 DigitOffsetR9	byte	;  digit array offset for left digit 9
 DigitOffsetR10	byte	;  digit array offset for left digit 10 
 DigitOffsetR11	byte	;  digit array offset for left digit 11 
-P0spritePtr	word	; (92) y-adjusted sprite pointer
-digitTablePointer	word	; (94) pointer to digit table
-scanLine	byte	; track current scan line
+
+; Pointer block
+	org $b0
+P0spritePtr	word	; (b0/b1) y-adjusted sprite pointer
+digitTablePointer	word	; (b2/b3) pointer to digit table
+; Scroll Pointers
+ScrollPtr0	word	; (b4/b5)
+ScrollPtr1	word	; (b6/b7)
+ScrollPtr2	word	; (b8/b9)
+ScrollPtr3	word	; (ba/bb)
+ScrollPtr4	word	; (bc/bd)
+ScrollPtr5	word	; (be/bf)
+ScrollPtr6	word	; (c0/c1)
+ScrollPtr7	word	; (c2/c3)
+ScorePtr0	word	; (c4/c5)
+ScorePtr1	word	; (c6/c7)
+
+Scroll5		byte	; (88) digit 0 of score
+Scroll6		byte	; (89) digit 1 of score
+Scroll7		byte	; (8a) digit 2 of score
+Scroll8		byte	; (8b) digit 3 of score
+Scroll9		byte	; (8c) digit 4 of score
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end variables
 
@@ -72,6 +98,7 @@ Start:
 
 	lda #0
 	sta digitLine
+	sta Score
 
 	lda #%00000000
 	sta frameOdd
@@ -122,10 +149,49 @@ Start:
 	sta DigitOffsetR0
 	
 ;;; Set digitTablePointer
-	lda #<digitTable
-	sta digitTablePointer
-	lda #>digitTable
+;	lda #<digitTableRight
+;	sta digitTablePointer
+	lda #>digitTableRight
 	sta digitTablePointer+1
+
+;; (temp) initialize score digits
+	lda #1
+	sta Scroll0
+	lda #2
+	sta Scroll1
+	lda #3
+	sta Scroll2
+	lda #4
+	sta Scroll3
+	lda #5
+	sta Scroll4
+	lda #6
+	sta Scroll5
+	lda #7
+	sta Scroll6
+	lda #10	; blank
+	sta Scroll7
+	lda #0	; score 10s
+	sta Scroll8
+	lda #0	; score 1s
+	sta Scroll9
+
+;; set up Scroll Pointers high bytes
+	lda #>digitTableLeftRev
+	sta ScrollPtr0+1
+	sta ScrollPtr5+1
+	lda #>digitTableLeft
+	sta ScrollPtr1+1
+	sta ScrollPtr6+1
+	lda #>digitTableRight
+	sta ScrollPtr2+1
+	sta ScrollPtr7+1
+	lda #>digitTableRightRev
+	sta ScrollPtr3+1
+	sta ScorePtr0+1
+	lda #>digitTableLeftRev
+	sta ScrollPtr4+1
+	sta ScorePtr1+1
 
 ;;; Set high byte of P0spritePtr (low byte updated per frame)
 	lda #>P0bitmap
@@ -209,7 +275,7 @@ P0xDone:
 	lda P0y
 	cmp #8
 	beq P0yLow
-	cmp #192
+	cmp #176
 	beq P0yHigh
 	jmp P0yDone
 P0yLow:
@@ -234,7 +300,7 @@ P0yDone:
 	lda PFcolor
 	sta COLUPF
 ;;;; find out where the collision happened
-	lda #192+P0HEIGHT/2	; 192 total pixels
+	lda #176+P0HEIGHT/2	; 176 total pixels
 	sec
 	sbc P0y	; subtract y to get top-indexed P0y
 	lsr	; divide by 16
@@ -262,6 +328,7 @@ P0yDone:
 	eor #%01000000
 	sta frameOdd
 
+	jsr LoadScrollPointers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end game vblank logic
 
@@ -270,8 +337,9 @@ P0yDone:
 ;;;;  start kernel prep
 	lda #0
 	sta digitLine	; digit line starts at 0 every page
+	sta COLUBK	; set background to black for score line
 	ldx #0		; row number starts at 0 every page
-	lda #192	; 
+	lda #176
 	sta scanLine	; counter
 ;;;;  end kernel prep
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -293,10 +361,36 @@ P0yDone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; kernel (192 visible scan lines)
 
+	ldy #14
 ;;; display 12 rows of "score"
+.ScrollLoop
+	sta WSYNC		; 3| 0
+	lda (ScrollPtr0),Y	; 5| 5 PF0 is single digit
+	sta PF0			; 3| 8
+	lda (ScrollPtr1),Y	; 4|12
+	ora (ScrollPtr2),Y	; 5|17
+	sta PF1			; 3|20
+	lda (ScrollPtr3),Y	; 5|25
+	ora (ScrollPtr4),Y	; 5|30
+	sta PF2			; 3|33
+	lda (ScrollPtr5),Y	; 5|38
+	sta PF0			; 3|41
+;	lda (ScrollPtr6),Y	; 5|46
+;	ora (ScrollPtr7),Y	; 5|51
+	lda #0
+	sta PF1			; 3|54
+	lda (ScorePtr0),Y	; 5|59
+	ora (ScorePtr1),Y	; 5|64
+	sta PF2			; 3|67
+	dey			; 2|69
+	bne .ScrollLoop		; 3|75/76
 
-;;; display 4 rows of blank
+; moving to play area - set background color back
+	sta WSYNC
+	lda #106
+	sta COLUBK
 
+	ldx #0
 ;;; pick which loop
 	bit frameOdd
 	bvc .EvenLoop
@@ -311,7 +405,7 @@ P0yDone:
 	clc			; 2|
 	adc DigitOffsetL0,X	; 4|
 	tay			; 2|
-	lda digitTable,Y	; 4|
+	lda digitTableRight,Y	; 4|
 	sta PF1			; 3|
 ; 18
 ;;; draw P0 (24)
@@ -355,6 +449,7 @@ P0yDone:
 	bne .EvenLoop		; 3/4
 	beq .Overscan
 
+	nop	;push the beginning of the loop past f200 boundary for predictable branching
 ;;;; start odd frame
 .OddLoop
 	sta WSYNC 	; 3| 0
@@ -385,7 +480,7 @@ P0yDone:
 	clc			; 2|
 	adc DigitOffsetR0,X	; 4|
 	tay			; 2|
-	lda digitTable,Y	; 4|
+	lda digitTableRight,Y	; 4|
 	sta PF1			; 3|
 
 ; 48
@@ -487,7 +582,91 @@ DigitCapture SUBROUTINE
 	sta HoleIndex		; 
 	tya
 	sta DigitOffsetL0,X	; store it in current hole
+; ripple scroll digits
+	lda Scroll5
+	sta Scroll6
+	lda Scroll4
+	sta Scroll5
+	lda Scroll3
+	sta Scroll4
+	lda Scroll2
+	sta Scroll3
+	lda Scroll1
+	sta Scroll2
+	lda Scroll0
+	sta Scroll1
+	tya
+	lsr
+	lsr
+	lsr
+	lsr
+	sta Scroll0
+; increment score
+	clc
+	sed
+	lda Score
+	adc #1
+	sta Score
+	cld
 	RTS
+
+;;; Load Scroll/Score Pointers based on corresponding values
+LoadScrollPointers SUBROUTINE
+	lda Scroll0	; load the digit
+	asl		; 
+	asl		; 
+	asl		; 
+	asl		; multiply by 16
+	sta ScrollPtr0	; Put in LSB of ScrollPtr
+
+	lda Scroll1	; load the digit
+	asl		; 
+	asl		; 
+	asl		; 
+	asl		; multiply by 16
+	sta ScrollPtr1	; Put in LSB of ScrollPtr
+
+	lda Scroll2	; load the digit
+	asl		; 
+	asl		; 
+	asl		; 
+	asl		; multiply by 16
+	sta ScrollPtr2	; Put in LSB of ScrollPtr
+
+	lda Scroll3	; load the digit
+	asl		; 
+	asl		; 
+	asl		; 
+	asl		; multiply by 16
+	sta ScrollPtr3	; Put in LSB of ScrollPtr
+
+	lda Scroll4	; load the digit
+	asl		; 
+	asl		; 
+	asl		; 
+	asl		; multiply by 16
+	sta ScrollPtr4	; Put in LSB of ScrollPtr
+
+	lda Scroll5	; load the digit
+	asl		; 
+	asl		; 
+	asl		; 
+	asl		; multiply by 16
+	sta ScrollPtr5	; Put in LSB of ScrollPtr
+
+	lda #%11110000 	; mask for first decimal digit
+	and Score	;
+	sta ScorePtr0	; Put in LSB of ScorePtr
+
+	lda #%00001111	; load the digit
+	and Score	; load 2nd decimal digit
+	asl		; 
+	asl		; 
+	asl		; 
+	asl		; multiply by 16
+	sta ScorePtr1	; Put in LSB of ScorePtr
+
+	rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;   end subroutines
@@ -497,7 +676,10 @@ DigitCapture SUBROUTINE
 
 ;;; digits.h should set digitTable at the beginning followed by
 ;;;          an array of 16 bytes for each digit 0-9
-	include "digits.h"
+	include "digitTableRight.h"
+	include "digitTableLeft.h"
+	include "digitTableRightRev.h"
+	include "digitTableLeftRev.h"
 
 	org $fef6
 P0bitmap:

@@ -1,6 +1,8 @@
-	org $fd00
-digitTable:
-digit0:
+	align 256
+digitTableRight:
+; 0
+	.byte %00000000;|    
+	.byte %00000000;|    
 	.byte %00000100;| X  
 	.byte %00000100;| X  
 	.byte %00001110;|XXX 
@@ -15,163 +17,160 @@ digit0:
 	.byte %00000100;| X  
 	.byte %00000000;|    
 	.byte %00000000;|    
+; 1
 	.byte %00000000;|    
 	.byte %00000000;|    
-digit1:
+	.byte %00001110;|XXX 
+	.byte %00001110;|XXX 
+	.byte %00001110;|XXX 
+	.byte %00000100;| X  
+	.byte %00000100;| X  
+	.byte %00000100;| X  
+	.byte %00000100;| X  
+	.byte %00000100;| X  
 	.byte %00000100;| X  
 	.byte %00001100;|XX  
 	.byte %00001100;|XX  
 	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00001110;|XXX 
-	.byte %00001110;|XXX 
-	.byte %00001110;|XXX 
 	.byte %00000000;|    
 	.byte %00000000;|    
+; 2
 	.byte %00000000;|    
 	.byte %00000000;|    
-digit2:
-	.byte %00000100;| X  
 	.byte %00001110;|XXX 
 	.byte %00001110;|XXX 
-	.byte %00001010;|X X 
-	.byte %00000010;|  X 
+	.byte %00001000;|X   
+	.byte %00001000;|X   
+	.byte %00001100;|XX  
 	.byte %00000110;| XX 
-	.byte %00000110;| XX 
-	.byte %00001100;|XX  
-	.byte %00001000;|X   
-	.byte %00001000;|X   
-	.byte %00001110;|XXX 
-	.byte %00001110;|XXX 
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-digit3:
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00001110;|XXX 
-	.byte %00001010;|X X 
-	.byte %00000010;|  X 
-	.byte %00000110;| XX 
-	.byte %00000100;| X  
-	.byte %00000010;|  X 
-	.byte %00001010;|X X 
-	.byte %00001110;|XXX 
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-digit4:
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00001110;|XXX 
-	.byte %00001110;|XXX 
-	.byte %00001110;|XXX 
-	.byte %00000010;|  X 
-	.byte %00000010;|  X 
-	.byte %00000010;|  X 
-	.byte %00000010;|  X 
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-digit5:
-	.byte %00001110;|XXX 
-	.byte %00001110;|XXX 
-	.byte %00001000;|X   
-	.byte %00001000;|X   
-	.byte %00001100;|XX  
-	.byte %00001100;|XX  
 	.byte %00000110;| XX 
 	.byte %00000010;|  X 
+	.byte %00001010;|X X 
+	.byte %00001110;|XXX 
+	.byte %00001110;|XXX 
+	.byte %00000100;| X  
+	.byte %00000000;|    
+	.byte %00000000;|    
+; 3
+	.byte %00000000;|    
+	.byte %00000000;|    
+	.byte %00000100;| X  
+	.byte %00000100;| X  
+	.byte %00001110;|XXX 
+	.byte %00001010;|X X 
+	.byte %00000010;|  X 
+	.byte %00000100;| X  
+	.byte %00000110;| XX 
 	.byte %00000010;|  X 
 	.byte %00001010;|X X 
 	.byte %00001110;|XXX 
 	.byte %00000100;| X  
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-digit6:
-	.byte %00000110;| XX 
-	.byte %00001110;|XXX 
-	.byte %00001000;|X   
-	.byte %00001000;|X   
-	.byte %00001000;|X   
-	.byte %00001100;|XX  
-	.byte %00001110;|XXX 
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00001110;|XXX 
-	.byte %00000100;| X  
 	.byte %00000100;| X  
 	.byte %00000000;|    
 	.byte %00000000;|    
+; 4
 	.byte %00000000;|    
 	.byte %00000000;|    
-digit7:
+	.byte %00000010;|  X 
+	.byte %00000010;|  X 
+	.byte %00000010;|  X 
+	.byte %00000010;|  X 
 	.byte %00001110;|XXX 
+	.byte %00001110;|XXX 
+	.byte %00001110;|XXX 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00000000;|    
+	.byte %00000000;|    
+; 5
+	.byte %00000000;|    
+	.byte %00000000;|    
+	.byte %00000100;| X  
 	.byte %00001110;|XXX 
 	.byte %00001010;|X X 
 	.byte %00000010;|  X 
 	.byte %00000010;|  X 
 	.byte %00000110;| XX 
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00001000;|X   
-	.byte %00001000;|X   
-	.byte %00001000;|X   
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-digit8:
-	.byte %00000100;| X  
-	.byte %00001110;|XXX 
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00000100;| X  
-	.byte %00000100;| X  
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00001010;|X X 
-	.byte %00001110;|XXX 
-	.byte %00000100;| X  
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-digit9:
-	.byte %00000100;| X  
 	.byte %00001100;|XX  
+	.byte %00001100;|XX  
+	.byte %00001000;|X   
+	.byte %00001000;|X   
+	.byte %00001110;|XXX 
+	.byte %00001110;|XXX 
+	.byte %00000000;|    
+	.byte %00000000;|    
+; 6
+	.byte %00000000;|    
+	.byte %00000000;|    
+	.byte %00000100;| X  
+	.byte %00000100;| X  
 	.byte %00001110;|XXX 
 	.byte %00001010;|X X 
 	.byte %00001010;|X X 
-	.byte %00001010;|X X 
 	.byte %00001110;|XXX 
+	.byte %00001100;|XX  
+	.byte %00001000;|X   
+	.byte %00001000;|X   
+	.byte %00001000;|X   
+	.byte %00001110;|XXX 
+	.byte %00000110;| XX 
+	.byte %00000000;|    
+	.byte %00000000;|    
+; 7
+	.byte %00000000;|    
+	.byte %00000000;|    
+	.byte %00001000;|X   
+	.byte %00001000;|X   
+	.byte %00001000;|X   
+	.byte %00000100;| X  
+	.byte %00000100;| X  
+	.byte %00000100;| X  
 	.byte %00000110;| XX 
 	.byte %00000010;|  X 
 	.byte %00000010;|  X 
+	.byte %00001010;|X X 
+	.byte %00001110;|XXX 
+	.byte %00001110;|XXX 
+	.byte %00000000;|    
+	.byte %00000000;|    
+; 8
+	.byte %00000000;|    
+	.byte %00000000;|    
+	.byte %00000100;| X  
+	.byte %00001110;|XXX 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00000100;| X  
+	.byte %00000100;| X  
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00001110;|XXX 
+	.byte %00000100;| X  
+	.byte %00000000;|    
+	.byte %00000000;|    
+; 9
+	.byte %00000000;|    
+	.byte %00000000;|    
+	.byte %00001100;|XX  
+	.byte %00001110;|XXX 
+	.byte %00000010;|  X 
+	.byte %00000010;|  X 
+	.byte %00000110;| XX 
+	.byte %00001110;|XXX 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
+	.byte %00001010;|X X 
 	.byte %00001110;|XXX 
 	.byte %00001100;|XX  
+	.byte %00000100;| X  
 	.byte %00000000;|    
 	.byte %00000000;|    
-	.byte %00000000;|    
-	.byte %00000000;|    
-digitBlank:
+; blank
 	.byte %00000000;|    
 	.byte %00000000;|    
 	.byte %00000000;|    
