@@ -6,6 +6,7 @@
 ;;;; start constant declarations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 P0HEIGHT equ 9
+PLAYAREALINES equ 176
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end constant declarations
 
@@ -41,7 +42,6 @@ DigitOffsetL7	byte	;  digit array offset for left digit 7
 DigitOffsetL8	byte	;  digit array offset for left digit 8
 DigitOffsetL9	byte	;  digit array offset for left digit 9
 DigitOffsetL10	byte	;  digit array offset for left digit 10 
-DigitOffsetL11	byte	;  digit array offset for left digit 11 
 
 	org $a0
 DigitOffsetR0	byte	;  digit array offset for left digit 0
@@ -55,7 +55,6 @@ DigitOffsetR7	byte	;  digit array offset for left digit 7
 DigitOffsetR8	byte	;  digit array offset for left digit 8
 DigitOffsetR9	byte	;  digit array offset for left digit 9
 DigitOffsetR10	byte	;  digit array offset for left digit 10 
-DigitOffsetR11	byte	;  digit array offset for left digit 11 
 
 ; Pointer block
 	org $b0
@@ -72,6 +71,7 @@ ScrollPtr6	word	; (c0/c1)
 ScrollPtr7	word	; (c2/c3)
 ScorePtr0	word	; (c4/c5)
 ScorePtr1	word	; (c6/c7)
+
 
 Scroll5		byte	; (88) digit 0 of score
 Scroll6		byte	; (89) digit 1 of score
@@ -111,10 +111,9 @@ Start:
 
 ;;; Initialize digits
 	lda #$a0		; blank
-	sta DigitOffsetL0
-	sta DigitOffsetR11
 	sta DigitOffsetL4	; initial hole 3
 	lda #$00		; 0
+	sta DigitOffsetL0
 	sta DigitOffsetL1
 	sta DigitOffsetR10
 	lda #$10		; 1
@@ -144,9 +143,8 @@ Start:
 	lda #$90
 	sta DigitOffsetL10
 	sta DigitOffsetR1
-	lda #$a0
-	sta DigitOffsetL11
 	sta DigitOffsetR0
+	lda #$a0
 	
 ;;; Set digitTablePointer
 ;	lda #<digitTableRight
@@ -275,7 +273,7 @@ P0xDone:
 	lda P0y
 	cmp #8
 	beq P0yLow
-	cmp #176
+	cmp #PLAYAREALINES
 	beq P0yHigh
 	jmp P0yDone
 P0yLow:
@@ -283,7 +281,7 @@ P0yLow:
 	sta P0y
 	jmp P0yDone
 P0yHigh:
-	lda #191
+	lda #PLAYAREALINES-1
 	sta P0y
 P0yDone:
 	
@@ -299,8 +297,12 @@ P0yDone:
 	beq .NoP0Collision
 	lda PFcolor
 	sta COLUPF
+;;; check if it's overlapping 2 digits
+	lda #%00001000		; don't count position if top of 8-line sprite
+	bit P0y			; is in 2nd half of 16-line digit (collision could be on next digit)
+	beq .NoP0Collision	; 
 ;;;; find out where the collision happened
-	lda #176+P0HEIGHT/2	; 176 total pixels
+	lda #PLAYAREALINES+P0HEIGHT/2	; 
 	sec
 	sbc P0y	; subtract y to get top-indexed P0y
 	lsr	; divide by 16
@@ -336,11 +338,13 @@ P0yDone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  start kernel prep
 	lda #0
-	sta digitLine	; digit line starts at 0 every page
 	sta COLUBK	; set background to black for score line
 	ldx #0		; row number starts at 0 every page
-	lda #176
+	lda #PLAYAREALINES
 	sta scanLine	; counter
+	lda #15
+	sta digitLine	; digit line counter
+
 ;;;;  end kernel prep
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -385,11 +389,14 @@ P0yDone:
 	dey			; 2|69
 	bne .ScrollLoop		; 3|75/76
 
-; moving to play area - set background color back
+;;; one more black line before moving to play area
 	sta WSYNC
+
+;; set background color back
 	lda #106
 	sta COLUBK
 
+;; initialize x
 	ldx #0
 ;;; pick which loop
 	bit frameOdd
@@ -432,15 +439,13 @@ P0yDone:
 ; 48
 ;;; digit cleanup (15)
 .DigitCleanA
-	lda #%00001111	; 2|2
-	eor digitLine	; 3|5
-	beq .NewDigitA	; 2/3| 7/8
-	inc digitLine	; 5| 12
-	jmp .EndDigitCleanA	; 3| 15
+	dec digitLine		; 5|5
+	beq .NewDigitA		; 2/3| 7/8
+	jmp .EndDigitCleanA	; 3| 10
 .NewDigitA:
-	inx		; 2| 10 digit row ++
-	lda #0		; 2| 12
-	sta digitLine	; 3| 15 digit line reset
+	inx			; 2| 10 digit row ++
+	lda #16			; 2| 12
+	sta digitLine		; 3| 15 digit line reset
 .EndDigitCleanA
 
 ; 63
@@ -486,15 +491,13 @@ P0yDone:
 ; 48
 ;;; digit cleanup (15)
 .DigitCleanB
-	lda #%00001111	; 2|2
-	eor digitLine	; 3|5
-	beq .NewDigitB	; 2/3| 7/8
-	inc digitLine	; 5| 12
-	jmp .EndDigitCleanB	; 3| 15
+	dec digitLine		; 3|5
+	beq .NewDigitB		; 2/3| 7/8
+	jmp .EndDigitCleanB	; 3| 10
 .NewDigitB:
-	inx		; 2| 10 digit row ++
-	lda #0		; 2| 12
-	sta digitLine	; 3| 15 digit line reset
+	inx			; 2| 10 digit row ++
+	lda #16			; 2| 12
+	sta digitLine		; 3| 15 digit line reset
 .EndDigitCleanB
 
 ; 63
@@ -516,6 +519,9 @@ P0yDone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	lda #0
 	sta GRP0
+	sta PF0
+	sta PF1
+	sta PF2
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end game overscan logic
@@ -583,24 +589,24 @@ DigitCapture SUBROUTINE
 	tya
 	sta DigitOffsetL0,X	; store it in current hole
 ; ripple scroll digits
-	lda Scroll5
-	sta Scroll6
-	lda Scroll4
-	sta Scroll5
-	lda Scroll3
-	sta Scroll4
-	lda Scroll2
-	sta Scroll3
 	lda Scroll1
-	sta Scroll2
-	lda Scroll0
+	sta Scroll0
+	lda Scroll2
 	sta Scroll1
+	lda Scroll3
+	sta Scroll2
+	lda Scroll4
+	sta Scroll3
+	lda Scroll5
+	sta Scroll4
+	lda Scroll6
+	sta Scroll5
 	tya
 	lsr
 	lsr
 	lsr
 	lsr
-	sta Scroll0
+	sta Scroll6
 ; increment score
 	clc
 	sed
@@ -683,6 +689,18 @@ LoadScrollPointers SUBROUTINE
 
 	org $fef6
 P0bitmap:
+;;; pi bitmap
+	byte #%00000000
+	byte #%11011111
+	byte #%01010000
+	byte #%01011000
+	byte #%01000110
+	byte #%01010010
+	byte #%01001100
+	byte #%01000000
+	byte #%01111111
+/*
+;;; sqrt(2) bitmap
 	byte #%00000000
 	byte #%11000010
 	byte #%00100101
@@ -692,6 +710,7 @@ P0bitmap:
 	byte #%00100100
 	byte #%00100100
 	byte #%11111111
+*/
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end ROM lookup tables

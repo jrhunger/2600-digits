@@ -1,2 +1,4 @@
 *.bin
 oldDigits/
+*.sym
+*.lst

@@ -1,5 +1,5 @@
 all:
-	../bin/dasm *.asm -f3 -v0 -ocart.bin
+	../bin/dasm *.asm -f3 -v0 -Lcart.lst -scart.sym -ocart.bin
 
 
 verbose:
