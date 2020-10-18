@@ -29,6 +29,7 @@ Scroll2		byte	; (8a) digit 2 of scroll
 Scroll3		byte	; (8b) digit 3 of scroll
 Scroll4		byte	; (8c) digit 4 of scroll
 Score		byte	; (8d) Actual Score
+KeyIndex	byte	; (8e) Index into digit key
 
 	org $90
 DigitOffsetL0	byte	;  digit array offset for left digit 0
@@ -59,7 +60,7 @@ DigitOffsetR10	byte	;  digit array offset for left digit 10
 ; Pointer block
 	org $b0
 P0spritePtr	word	; (b0/b1) y-adjusted sprite pointer
-digitTablePointer	word	; (b2/b3) pointer to digit table
+
 ; Scroll Pointers
 ScrollPtr0	word	; (b4/b5)
 ScrollPtr1	word	; (b6/b7)
@@ -71,7 +72,7 @@ ScrollPtr6	word	; (c0/c1)
 ScrollPtr7	word	; (c2/c3)
 ScorePtr0	word	; (c4/c5)
 ScorePtr1	word	; (c6/c7)
-
+KeyTablePtr	word	; (c8/c9)
 
 Scroll5		byte	; (88) digit 0 of score
 Scroll6		byte	; (89) digit 1 of score
@@ -112,8 +113,9 @@ Start:
 ;;; Initialize digits
 	lda #$a0		; blank
 	sta DigitOffsetL4	; initial hole 3
-	lda #$00		; 0
 	sta DigitOffsetL0
+	sta DigitOffsetR0
+	lda #$00		; 0
 	sta DigitOffsetL1
 	sta DigitOffsetR10
 	lda #$10		; 1
@@ -143,35 +145,22 @@ Start:
 	lda #$90
 	sta DigitOffsetL10
 	sta DigitOffsetR1
-	sta DigitOffsetR0
 	lda #$a0
 	
-;;; Set digitTablePointer
-;	lda #<digitTableRight
-;	sta digitTablePointer
-	lda #>digitTableRight
-	sta digitTablePointer+1
-
-;; (temp) initialize score digits
-	lda #1
+;; initialize scroll digits
+	lda #$a		; blank
 	sta Scroll0
-	lda #2
 	sta Scroll1
-	lda #3
 	sta Scroll2
-	lda #4
 	sta Scroll3
-	lda #5
+	lda #3		; start with pi 3.
 	sta Scroll4
-	lda #6
+	lda #$b		; decimal point
 	sta Scroll5
-	lda #7
-	sta Scroll6
-	lda #10	; blank
-	sta Scroll7
+
+;; initalize score digits
 	lda #0	; score 10s
 	sta Scroll8
-	lda #0	; score 1s
 	sta Scroll9
 
 ;; set up Scroll Pointers high bytes
@@ -194,6 +183,10 @@ Start:
 ;;; Set high byte of P0spritePtr (low byte updated per frame)
 	lda #>P0bitmap
 	sta P0spritePtr+1
+
+;;; Set key table to Pi digits initially
+	lda #>piTable
+	sta KeyTablePtr+1
 
 ;;; Initialize CTRLPF
 	; D0 = REF (reflect playfield)
@@ -588,6 +581,16 @@ DigitCapture SUBROUTINE
 	sta HoleIndex		; 
 	tya
 	sta DigitOffsetL0,X	; store it in current hole
+; check input digit vs key
+	tya
+	lsr
+	lsr
+	lsr
+	lsr
+	tax
+	ldy #0
+	cmp (KeyTablePtr),Y
+	bne .IncorrectDigit
 ; ripple scroll digits
 	lda Scroll1
 	sta Scroll0
@@ -599,14 +602,10 @@ DigitCapture SUBROUTINE
 	sta Scroll3
 	lda Scroll5
 	sta Scroll4
-	lda Scroll6
+	txa
 	sta Scroll5
-	tya
-	lsr
-	lsr
-	lsr
-	lsr
-	sta Scroll6
+; increment lsb of KeyTablePtr
+	inc KeyTablePtr
 ; increment score
 	clc
 	sed
@@ -614,6 +613,18 @@ DigitCapture SUBROUTINE
 	adc #1
 	sta Score
 	cld
+	jmp .IncorrectDone
+.IncorrectDigit
+; increment score
+	sec
+	sed
+	lda Score
+	sbc #1
+	bmi .ScoreZero	
+	sta Score
+.ScoreZero
+	cld
+.IncorrectDone
 	RTS
 
 ;;; Load Scroll/Score Pointers based on corresponding values
@@ -686,21 +697,11 @@ LoadScrollPointers SUBROUTINE
 	include "digitTableLeft.h"
 	include "digitTableRightRev.h"
 	include "digitTableLeftRev.h"
+	include "numberTables.h"
 
 	org $fef6
 P0bitmap:
 ;;; pi bitmap
-	byte #%00000000
-	byte #%11011111
-	byte #%01010000
-	byte #%01011000
-	byte #%01000110
-	byte #%01010010
-	byte #%01001100
-	byte #%01000000
-	byte #%01111111
-/*
-;;; sqrt(2) bitmap
 	byte #%00000000
 	byte #%11000010
 	byte #%00100101
@@ -710,6 +711,17 @@ P0bitmap:
 	byte #%00100100
 	byte #%00100100
 	byte #%11111111
+;;; sqrt(2) bitmap
+/*
+	byte #%00000000
+	byte #%11011111
+	byte #%01010000
+	byte #%01011000
+	byte #%01000110
+	byte #%01010010
+	byte #%01001100
+	byte #%01000000
+	byte #%01111111
 */
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
