@@ -3,6 +3,64 @@
 	include "vcs.h"
 	include "macro.h"
 
+;;;;  begin Macros
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; DIGIT_L - draw a digit on the left half of the screen
+;;;; usage: DIGIT_L PF#
+;;;; - x is the vertical digit line
+	MAC DIGIT_L
+.Register	SET {1}
+.DigitTable	SET {2}
+.DigitLoop	
+	sta WSYNC	; 3|0 wait for scanline at beginning so end-of
+			;     loop logic is pre-scanline
+;;;;;; start frame
+;;; left playfield digit (18)
+	lda digitLine		; 3|
+	clc			; 2|
+	adc DigitOffsetL0,X	; 4|
+	tay			; 2|
+	lda .DigitTable,Y	; 4|
+	sta .Register		; 3|
+; 18
+;;; draw P0 (24)
+	ldy scanLine	; 3|
+	sec		; 2| 5
+	tya		; 2| 7
+	sbc P0y		; 3| 10
+	adc #P0HEIGHT	; 2| 12
+	bcs .DrawP0a	; 2/3|
+	nop		; 2|
+	nop		; 2|
+	sec		; 2|
+	bcs .NoDrawP0a	; 3|
+.DrawP0a
+	lda (P0spritePtr),Y	; 5|
+	sta GRP0	; 3|
+.NoDrawP0a
+
+; 41
+;;; clear PF1 for right digit (6)
+	lda #0		; 2|
+	sta .Register	; 3| (46)
+
+; 46
+;;; digit cleanup (15)
+.DigitCleanA
+	dec scanLine		; 5| scanLine--
+	dec digitLine		; 5|5
+	beq .NewDigitA		; 2/3| 7/8
+	jmp .DigitLoop		; 3| 15 (used 61 of ~72)
+.NewDigitA:
+	inx			; 2| 10 digit row ++
+	lda #16			; 2| 12
+	sta digitLine		; 3| 15 digit line reset
+	ENDM			
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;  end Macros
+
 ;;;; start constant declarations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 P0HEIGHT equ 9
@@ -107,7 +165,7 @@ Start:
 	lda #55
 	sta PFcolor
 
-	lda #4
+	lda #0
 	sta HoleIndex		; initial hole 3
 
 ;;; Initialize digits
@@ -125,7 +183,7 @@ Start:
 	sta DigitOffsetL3
 	sta DigitOffsetR8
 	lda #$30		; 3
-	;sta DigitOffsetL4	; it's the hole, for pi
+	sta DigitOffsetL4	
 	sta DigitOffsetR7
 	lda #$40
 	sta DigitOffsetL5
@@ -303,9 +361,11 @@ P0yDone:
 	lsr
 	lsr
 	tax	; put in X
-	lda #%01000000	; bit mask for bit 6 (64)
-	bit P0x	; means between 64 and 128 (right side)
-	beq .LeftCollision
+;	lda #%01000000	; bit mask for bit 6 (64)
+;	bit P0x	; means between 64 and 128 (right side)
+	lda #80		; 80 is horizontal middle of 160
+        cmp P0x		; compare with X
+	bpl .LeftCollision
 	txa		; right is +16 of left, so
 	ora #%00010000	; add 16 (x starts 0-15)
 	tax		; and store back in X
@@ -394,66 +454,29 @@ P0yDone:
 ;;; pick which loop
 	bit frameOdd
 	bvc .EvenLoop
-	bvs .OddLoop
+	jmp OddLoop
 
-.EvenLoop:
-	sta WSYNC	; 3|0 wait for scanline at beginning so end-of
-			;     loop logic is pre-scanline
-;;;;;; start even frame 
-;;; left playfield digit (18)
-	lda digitLine		; 3|
-	clc			; 2|
-	adc DigitOffsetL0,X	; 4|
-	tay			; 2|
-	lda digitTableRight,Y	; 4|
-	sta PF1			; 3|
-; 18
-;;; draw P0 (24)
-	ldy scanLine	; 3|
-	sec		; 2| 5
-	tya		; 2| 7
-	sbc P0y		; 3| 10
-	adc #P0HEIGHT	; 3| 13
-	bcs .DrawP0a	; 2/3|
-	nop		; 2|
-	nop		; 2|
-	sec		; 2|
-	bcs .NoDrawP0a	; 3|
-.DrawP0a
-	lda (P0spritePtr),Y	; 5|
-	sta GRP0	; 3|
-.NoDrawP0a
-
-; 42
-;;; clear PF1 for right digit (6)
-	lda #0		; 3|
-	sta PF1		; 3| (48)
-
-; 48
-;;; digit cleanup (15)
-.DigitCleanA
-	dec digitLine		; 5|5
-	beq .NewDigitA		; 2/3| 7/8
-	jmp .EndDigitCleanA	; 3| 10
-.NewDigitA:
-	inx			; 2| 10 digit row ++
-	lda #16			; 2| 12
-	sta digitLine		; 3| 15 digit line reset
-.EndDigitCleanA
-
-; 63
-;;; end loop (cycles <= 67 here to avoid wrap)
-	dec scanLine		; 5| scanLine--
-	bne .EvenLoop		; 3/4
-	beq .Overscan
+.EvenLoop
+	DIGIT_L PF1, digitTableRight	; 0
+	DIGIT_L PF1, digitTableLeft	; 1
+	DIGIT_L PF0, digitTableLeftRev	; 2
+	DIGIT_L PF2, digitTableRightRev	; 3
+	DIGIT_L PF1, digitTableRight	; 4
+	DIGIT_L PF1, digitTableLeft	; 5
+	DIGIT_L PF1, digitTableRight	; 6
+	DIGIT_L PF2, digitTableRightRev	; 7
+	DIGIT_L PF0, digitTableLeftRev	; 8
+	DIGIT_L PF1, digitTableLeft	; 9
+	DIGIT_L PF1, digitTableRight	; 10
+	jmp Overscan
 
 	nop	;push the beginning of the loop past f200 boundary for predictable branching
 ;;;; start odd frame
-.OddLoop
+OddLoop
 	sta WSYNC 	; 3| 0
 ;;; clear PF1 for left digit (6)
 	lda #0		; 3|
-	sta PF1		; 3|
+	sta PF2		; 3|
 
 ; 6
 ;;; draw P0 (24)
@@ -479,7 +502,7 @@ P0yDone:
 	adc DigitOffsetR0,X	; 4|
 	tay			; 2|
 	lda digitTableRight,Y	; 4|
-	sta PF1			; 3|
+	sta PF2			; 3|
 
 ; 48
 ;;; digit cleanup (15)
@@ -496,11 +519,11 @@ P0yDone:
 ; 63
 ;;; end loop (cycles <= 67 here to avoid wrap)
 	dec scanLine		; 5| scanLine--
-	bne .OddLoop	; 2/3/4| go back until x = 0
+	bne OddLoop	; 2/3/4| go back until x = 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end kernel
 
-.Overscan
+Overscan
 ;;;; set timer for OVERSCAN
 	lda #2
 	sta WSYNC
@@ -731,3 +754,4 @@ P0bitmap:
 	org $FFFC
 	.word Start
 	.word Start
+
