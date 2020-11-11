@@ -204,3 +204,20 @@ digitTableRightRev:
 	.byte %00000000;|    
 	.byte %00000000;|    
 	.byte %00000000;|    
+; star
+	.byte %00000000;|    
+	.byte %00000000;|    
+	.byte %00001010;|x x 
+	.byte %00001010;|x x 
+	.byte %00001010;|x x 
+	.byte %00000100;| x  
+	.byte %00000100;| x  
+	.byte %00001110;|xxx 
+	.byte %00001110;|xxx 
+	.byte %00000100;| x  
+	.byte %00001010;| x  
+	.byte %00001010;|x x 
+	.byte %00001010;|x x 
+	.byte %00000000;|x x 
+	.byte %00000000;|    
+	.byte %00000000;|    

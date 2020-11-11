@@ -224,6 +224,7 @@ Start:
 	lda #$a0		; blank
 	sta DigitOffsetL4	; initial hole 3
 	sta DigitOffsetL0
+	lda #$c0		; star
 	sta DigitOffsetR0
 	lda #$00		; 0
 	sta DigitOffsetL1
@@ -620,7 +621,21 @@ DigitCapture SUBROUTINE
 	sta HoleIndex		; 
 	tya
 	sta DigitOffsetL0,X	; store it in current hole
+; check if input was star
+	cpy #$c0		; star character
+        bne .CheckInput
+	ldy #0
+	lda (KeyTablePtr),Y
+	tax
+; decrement score (will be incremented later for net 0)
+	sec
+	sed
+	lda Score
+	sbc #1
+	sta Score
+	jmp .RippleDigits
 ; check input digit vs key
+.CheckInput
 	tya
 	lsr
 	lsr
@@ -631,6 +646,7 @@ DigitCapture SUBROUTINE
 	cmp (KeyTablePtr),Y
 	bne .IncorrectDigit
 ; ripple scroll digits
+.RippleDigits
 	lda Scroll1
 	sta Scroll0
 	lda Scroll2
