@@ -58,6 +58,58 @@
 	sta digitLine		; 3| 15 digit line reset
 	ENDM			
 
+;;;; DIGIT_R - draw a digit on the right half of the screen
+;;;; usage: DIGIT_R PF# DigitTable(LeftRight)(Rev)
+;;;; - x is the vertical digit line
+	MAC DIGIT_R
+.Register	SET {1}
+.DigitTable	SET {2}
+.DigitLoop	
+	sta WSYNC 	; 3| 0
+;;; clear PF1 for left digit (6)
+	lda #0		; 3|
+	sta .Register	; 3|
+
+; 6
+;;; draw P0 (24)
+	ldy scanLine	; 3|
+	sec		; 2| set carry
+	tya		; 2|
+	sbc P0y		; 3|
+	adc #P0HEIGHT	; 3|
+	bcs .DrawP0b	; 2/3|
+	nop		; 2|
+	nop		; 2|
+	sec		; 2|
+	bcs .NoDrawP0b	; 3|
+.DrawP0b
+	lda (P0spritePtr),Y	; 5|
+	sta GRP0	; 3|
+.NoDrawP0b
+
+; 30
+;;; right playfield digit (18)
+	lda digitLine		; 3|
+	clc			; 2|
+	adc DigitOffsetR0,X	; 4|
+	tay			; 2|
+	lda .DigitTable,Y	; 4|
+	sta .Register		; 3|
+
+; 48
+;;; digit cleanup (15)
+.DigitClean
+	dec scanLine		; 5| 
+	dec digitLine		; 5|
+	beq .NewDigit		; 2/3| 7/8
+	jmp .DigitLoop		; 3| 10
+.NewDigit:
+	inx			; 2| 10 digit row ++
+	lda #16			; 2| 12
+	sta digitLine		; 3| 15 digit line reset
+	ENDM
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end Macros
 
@@ -470,56 +522,20 @@ P0yDone:
 	DIGIT_L PF1, digitTableRight	; 10
 	jmp Overscan
 
-	nop	;push the beginning of the loop past f200 boundary for predictable branching
 ;;;; start odd frame
 OddLoop
-	sta WSYNC 	; 3| 0
-;;; clear PF1 for left digit (6)
-	lda #0		; 3|
-	sta PF2		; 3|
-
-; 6
-;;; draw P0 (24)
-	ldy scanLine	; 3|
-	sec		; 2| set carry
-	tya		; 2|
-	sbc P0y		; 3|
-	adc #P0HEIGHT	; 3|
-	bcs .DrawP0b	; 2/3|
-	nop		; 2|
-	nop		; 2|
-	sec		; 2|
-	bcs .NoDrawP0b	; 3|
-.DrawP0b
-	lda (P0spritePtr),Y	; 5|
-	sta GRP0	; 3|
-.NoDrawP0b
-
-; 30
-;;; right playfield digit (18)
-	lda digitLine		; 3|
-	clc			; 2|
-	adc DigitOffsetR0,X	; 4|
-	tay			; 2|
-	lda digitTableRight,Y	; 4|
-	sta PF2			; 3|
-
-; 48
-;;; digit cleanup (15)
-.DigitCleanB
-	dec digitLine		; 3|5
-	beq .NewDigitB		; 2/3| 7/8
-	jmp .EndDigitCleanB	; 3| 10
-.NewDigitB:
-	inx			; 2| 10 digit row ++
-	lda #16			; 2| 12
-	sta digitLine		; 3| 15 digit line reset
-.EndDigitCleanB
-
-; 63
-;;; end loop (cycles <= 67 here to avoid wrap)
-	dec scanLine		; 5| scanLine--
-	bne OddLoop	; 2/3/4| go back until x = 0
+	DIGIT_R PF1, digitTableRight	; 0
+	DIGIT_R PF1, digitTableLeft	; 1
+	DIGIT_R PF0, digitTableLeftRev	; 2
+	DIGIT_R PF2, digitTableRightRev	; 3
+	DIGIT_R PF1, digitTableRight	; 4
+	DIGIT_R PF1, digitTableLeft	; 5
+	DIGIT_R PF1, digitTableRight	; 6
+	DIGIT_R PF2, digitTableRightRev	; 7
+	DIGIT_R PF0, digitTableLeftRev	; 8
+	DIGIT_R PF1, digitTableLeft	; 9
+	DIGIT_R PF1, digitTableRight	; 10
+	jmp Overscan
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end kernel
 
