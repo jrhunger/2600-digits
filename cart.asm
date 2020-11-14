@@ -41,7 +41,8 @@
 .NoDrawP0a
 
 ; 41
-;;; clear PF1 for right digit (6)
+;;; clear PF Register for right digit (5)
+	nop		; 2|
 	lda #0		; 2|
 	sta .Register	; 3| (46)
 
@@ -87,6 +88,7 @@
 	sta GRP0	; 3|
 .NoDrawP0b
 
+	nop
 ; 30
 ;;; right playfield digit (18)
 	lda digitLine		; 3|
@@ -217,44 +219,43 @@ Start:
 	lda #55
 	sta PFcolor
 
-	lda #0
-	sta HoleIndex		; initial hole 3
+	lda #10
+	sta HoleIndex		; initial hole left bottom
 
 ;;; Initialize digits
 	lda #$a0		; blank
-	sta DigitOffsetL4	; initial hole 3
-	sta DigitOffsetL0
+	sta DigitOffsetL10	; bottom left
 	lda #$c0		; star
-	sta DigitOffsetR0
+	sta DigitOffsetR0	; top right
 	lda #$00		; 0
-	sta DigitOffsetL1
+	sta DigitOffsetL0
 	sta DigitOffsetR10
 	lda #$10		; 1
-	sta DigitOffsetL2
+	sta DigitOffsetL1
 	sta DigitOffsetR9
 	lda #$20		; 2
-	sta DigitOffsetL3
+	sta DigitOffsetL2
 	sta DigitOffsetR8
 	lda #$30		; 3
-	sta DigitOffsetL4	
+	sta DigitOffsetL3	
 	sta DigitOffsetR7
 	lda #$40
-	sta DigitOffsetL5
+	sta DigitOffsetL4
 	sta DigitOffsetR6
 	lda #$50
-	sta DigitOffsetL6
+	sta DigitOffsetL5
 	sta DigitOffsetR5
 	lda #$60
-	sta DigitOffsetL7
+	sta DigitOffsetL6
 	sta DigitOffsetR4
 	lda #$70
-	sta DigitOffsetL8
+	sta DigitOffsetL7
 	sta DigitOffsetR3
 	lda #$80
-	sta DigitOffsetL9
+	sta DigitOffsetL8
 	sta DigitOffsetR2
 	lda #$90
-	sta DigitOffsetL10
+	sta DigitOffsetL9
 	sta DigitOffsetR1
 	lda #$a0
 	
@@ -511,15 +512,15 @@ P0yDone:
 
 .EvenLoop
 	DIGIT_L PF1, digitTableRight	; 0
-	DIGIT_L PF1, digitTableLeft	; 1
-	DIGIT_L PF0, digitTableLeftRev	; 2
-	DIGIT_L PF2, digitTableRightRev	; 3
-	DIGIT_L PF1, digitTableRight	; 4
-	DIGIT_L PF1, digitTableLeft	; 5
-	DIGIT_L PF1, digitTableRight	; 6
-	DIGIT_L PF2, digitTableRightRev	; 7
-	DIGIT_L PF0, digitTableLeftRev	; 8
-	DIGIT_L PF1, digitTableLeft	; 9
+	DIGIT_L PF2, digitTableRightRev	; 1
+	DIGIT_L PF2, digitTableLeftRev	; 2
+	DIGIT_L PF0, digitTableLeftRev	; 3
+	DIGIT_L PF1, digitTableLeft	; 4
+	DIGIT_L PF1, digitTableRight	; 5
+	DIGIT_L PF1, digitTableLeft	; 6
+	DIGIT_L PF0, digitTableLeftRev	; 7
+	DIGIT_L PF2, digitTableLeftRev	; 8
+	DIGIT_L PF2, digitTableRightRev	; 9
 	DIGIT_L PF1, digitTableRight	; 10
 	jmp Overscan
 
@@ -528,11 +529,11 @@ OddLoop
 	DIGIT_R PF1, digitTableRight	; 0
 	DIGIT_R PF1, digitTableLeft	; 1
 	DIGIT_R PF0, digitTableLeftRev	; 2
-	DIGIT_R PF2, digitTableRightRev	; 3
-	DIGIT_R PF1, digitTableRight	; 4
-	DIGIT_R PF1, digitTableLeft	; 5
-	DIGIT_R PF1, digitTableRight	; 6
-	DIGIT_R PF2, digitTableRightRev	; 7
+	DIGIT_R PF2, digitTableLeftRev	; 3
+	DIGIT_R PF2, digitTableRightRev	; 4
+	DIGIT_R PF1, digitTableRight	; 5
+	DIGIT_R PF2, digitTableRightRev	; 6
+	DIGIT_R PF2, digitTableLeftRev	; 7
 	DIGIT_R PF0, digitTableLeftRev	; 8
 	DIGIT_R PF1, digitTableLeft	; 9
 	DIGIT_R PF1, digitTableRight	; 10

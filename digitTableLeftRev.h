@@ -207,17 +207,17 @@ digitTableLeftRev:
 ; star
 	.byte %00000000;|    
 	.byte %00000000;|    
-	.byte %10100000;|x x 
-	.byte %10100000;|x x 
-	.byte %10100000;|x x 
-	.byte %01000000;| x  
-	.byte %01000000;| x  
-	.byte %11100000;|xxx 
-	.byte %11100000;|xxx 
-	.byte %01000000;| x  
-	.byte %01000000;| x  
-	.byte %10100000;|x x 
-	.byte %10100000;|x x 
-	.byte %10100000;|x x 
+	.byte %01010000;|x x 
+	.byte %01010000;|x x 
+	.byte %01010000;|x x 
+	.byte %00100000;| x  
+	.byte %00100000;| x  
+	.byte %01110000;|xxx 
+	.byte %01110000;|xxx 
+	.byte %00100000;| x  
+	.byte %00100000;| x  
+	.byte %01010000;|x x 
+	.byte %01010000;|x x 
+	.byte %01010000;|x x 
 	.byte %00000000;|    
 	.byte %00000000;|    
