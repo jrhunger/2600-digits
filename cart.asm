@@ -24,35 +24,37 @@
 	lda .DigitTable,Y	; 4|
 	sta .Register		; 3|
 ; 18
-;;; draw P0 (24)
+;;; draw P0 (23)
 	ldy scanLine	; 3|
 	sec		; 2| 5
 	tya		; 2| 7
 	sbc P0y		; 3| 10
 	adc #P0HEIGHT	; 2| 12
-	bcs .DrawP0a	; 2/3|
+	bcs .DrawP0a	; 2/3| 14/15
 	nop		; 2|
 	nop		; 2|
 	sec		; 2|
-	bcs .NoDrawP0a	; 3|
+	bcs .NoDrawP0a	; 3| 23
 .DrawP0a
-	lda (P0spritePtr),Y	; 5|
-	sta GRP0	; 3|
+	lda (P0spritePtr),Y	; 5| 20
+	sta GRP0	; 3| 23
 .NoDrawP0a
 
 ; 41
 ;;; clear PF Register for right digit (5)
-	nop		; 2|
 	lda #0		; 2|
-	sta .Register	; 3| (46)
+	nop		; 2|
+	sta .Register	; 3| 48
+	nop
+	sta GRP1	; 3| 51 trigger P0 draw (and delay so PF2 isn't cleared too early)
 
-; 46
+; 51
 ;;; digit cleanup (15)
 .DigitCleanA
 	dec scanLine		; 5| scanLine--
 	dec digitLine		; 5|5
 	beq .NewDigitA		; 2/3| 7/8
-	jmp .DigitLoop		; 3| 15 (used 61 of ~72)
+	jmp .DigitLoop		; 3| 15 (used 66 of ~72)
 .NewDigitA:
 	inx			; 2| 10 digit row ++
 	lda #16			; 2| 12
@@ -67,29 +69,29 @@
 .DigitTable	SET {2}
 .DigitLoop	
 	sta WSYNC 	; 3| 0
-;;; clear PF1 for left digit (6)
+;;; clear PF Register for left digit (6)
 	lda #0		; 3|
 	sta .Register	; 3|
 
 ; 6
-;;; draw P0 (24)
+;;; draw P0 (23)
 	ldy scanLine	; 3|
 	sec		; 2| set carry
 	tya		; 2|
 	sbc P0y		; 3|
-	adc #P0HEIGHT	; 3|
-	bcs .DrawP0b	; 2/3|
+	adc #P0HEIGHT	; 2|
+	bcs .DrawP0b	; 2/3| 14/15
 	nop		; 2|
 	nop		; 2|
 	sec		; 2|
-	bcs .NoDrawP0b	; 3|
+	bcs .NoDrawP0b	; 3| 23
 .DrawP0b
-	lda (P0spritePtr),Y	; 5|
-	sta GRP0	; 3|
+	lda (P0spritePtr),Y	; 5| 20
+	sta GRP0	; 3| 23
 .NoDrawP0b
 
 	nop
-; 30
+; 29
 ;;; right playfield digit (18)
 	lda digitLine		; 3|
 	clc			; 2|
@@ -98,13 +100,17 @@
 	lda .DigitTable,Y	; 4|
 	sta .Register		; 3|
 
-; 48
+; 47
+;;; strobe GRP1 to trigger P0
+	lda #0			; 2| 
+	sta GRP1		; 3| 52
+
 ;;; digit cleanup (15)
 .DigitClean
 	dec scanLine		; 5| 
 	dec digitLine		; 5|
 	beq .NewDigit		; 2/3| 7/8
-	jmp .DigitLoop		; 3| 10
+	jmp .DigitLoop		; 3| 10 (used 65 of ~72)
 .NewDigit:
 	inx			; 2| 10 digit row ++
 	lda #16			; 2| 12
@@ -307,6 +313,9 @@ Start:
 	; D4/D5 - Ball Size 00 = 1 / 01 = 2 / 10 = 4 / 11 = 8
 	lda #000000000	; don't reflect playfield
 	sta CTRLPF
+;;; Enable "vertical delay" for P0
+	lda #1		; only bit 0 matters
+	sta VDELP0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end variable initialization
 
