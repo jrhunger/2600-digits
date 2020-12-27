@@ -161,6 +161,7 @@ DigitOffsetL7	byte	;  digit array offset for left digit 7
 DigitOffsetL8	byte	;  digit array offset for left digit 8
 DigitOffsetL9	byte	;  digit array offset for left digit 9
 DigitOffsetL10	byte	;  digit array offset for left digit 10 
+notePtrC0	byte	;  note pointer for Channel 0
 
 	org $a0
 DigitOffsetR0	byte	;  digit array offset for left digit 0
@@ -174,6 +175,7 @@ DigitOffsetR7	byte	;  digit array offset for left digit 7
 DigitOffsetR8	byte	;  digit array offset for left digit 8
 DigitOffsetR9	byte	;  digit array offset for left digit 9
 DigitOffsetR10	byte	;  digit array offset for left digit 10 
+notePtrC1	byte	;  note pointer for Channel 1
 
 ; Pointer block
 	org $b0
@@ -192,11 +194,14 @@ ScorePtr0	word	; (c4/c5)
 ScorePtr1	word	; (c6/c7)
 KeyTablePtr	word	; (c8/c9)
 
-Scroll5		byte	; (88) digit 0 of score
-Scroll6		byte	; (89) digit 1 of score
-Scroll7		byte	; (8a) digit 2 of score
-Scroll8		byte	; (8b) digit 3 of score
-Scroll9		byte	; (8c) digit 4 of score
+Scroll5		byte	; (ca) digit 0 of score
+Scroll6		byte	; (cb) digit 1 of score
+Scroll7		byte	; (cd) digit 2 of score
+Scroll8		byte	; (ce) digit 3 of score
+Scroll9		byte	; (cf) digit 4 of score
+
+durC0		byte	; (d0) channel 0 duration
+durC1		byte	; (d1) channel 2 duration
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end variables
 
@@ -218,6 +223,8 @@ Start:
 	lda #0
 	sta digitLine
 	sta Score
+	sta notePtrC0
+	sta notePtrC1
 
 	lda #%00000000
 	sta frameOdd
@@ -305,6 +312,10 @@ Start:
 ;;; Set key table to Pi digits initially
 	lda #>piTable
 	sta KeyTablePtr+1
+
+;;; Start playing soundtrack on C0
+	lda #AUD_SOUNDTRACK
+	jsr PlaySoundC0
 
 ;;; Initialize CTRLPF
 	; D0 = REF (reflect playfield)
@@ -433,6 +444,7 @@ P0yDone:
 	ora #%00010000	; add 16 (x starts 0-15)
 	tax		; and store back in X
 .LeftCollision
+; handle digit capture logic (needs X from above)
 	jsr DigitCapture
 	jmp .DoneCollision
 .NoP0Collision
@@ -560,11 +572,14 @@ Overscan
 
 ;;;;  start game overscan logic
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; clear player and playfield graphics
 	lda #0
 	sta GRP0
 	sta PF0
 	sta PF1
 	sta PF2
+; check if any sounds need to be stopped
+	jsr SoundCheck
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;  end game overscan logic
@@ -634,6 +649,8 @@ DigitCapture SUBROUTINE
 ; check if input was star
 	cpy #$c0		; star character
         bne .CheckInput
+	lda AUD_STAR
+	jsr PlaySoundC1
 	ldy #0
 	lda (KeyTablePtr),Y
 	tax
@@ -655,6 +672,9 @@ DigitCapture SUBROUTINE
 	ldy #0
 	cmp (KeyTablePtr),Y
 	bne .IncorrectDigit
+; play good sound
+	lda #AUD_GOODNUMBER
+	jsr PlaySoundC1
 ; ripple scroll digits
 .RippleDigits
 	lda Scroll1
@@ -680,7 +700,10 @@ DigitCapture SUBROUTINE
 	cld
 	jmp .IncorrectDone
 .IncorrectDigit
-; increment score
+; play collision sound
+	lda #AUD_BADNUMBER
+	jsr PlaySoundC1
+; decrement score
 	sec
 	sed
 	lda Score
@@ -750,6 +773,88 @@ LoadScrollPointers SUBROUTINE
 
 	rts
 
+;;; Start playing a sound on C0
+;;; A (0 - 255) = where in sound data to start playing
+PlaySoundC0 SUBROUTINE
+	sta notePtrC0
+	lda #1		; set duration to 1 so 
+	sta durC0	; note will change on next check
+	rts
+
+;;; Start playing a sound on C1
+;;; A (0 - 255) = where in sound data to start playing
+PlaySoundC1 SUBROUTINE
+	sta notePtrC1
+	lda #1
+	sta durC1
+	rts
+
+;;; Check C0/C1 duration and see if tone is done
+;;; - if duration is 0, no change
+;;; - if duration decrements to 0, switch to next note
+;;; - if next note duration = 0 stop
+;;; - if next note duration = 255
+;;;   - stop current note
+;;;   - set note pointer to value of Frequency
+SoundCheck SUBROUTINE
+	lda durC0		; load duration
+	beq .checkC1		; if 0 do nothing
+	dec durC0		; decrement it
+	bne .checkC1		; if not zero, no change
+	inc notePtrC0		; zero: move pointer to next note
+        ldx notePtrC0		; load note pointer to X
+	lda AudioDuration,X	; load next Duration
+	beq .stopC0		; if 0, stop this channel
+	cmp #$FF		; check if 255
+	bne .playC0		; if not, ready to load audio data
+	lda AudioFrequency,X	; if so, read frequency to get next note pointer
+	sta notePtrC0		; store in notePtrC0
+	tax			; and in x
+	lda AudioDuration,X	; load new Duration
+.playC0
+	sta durC0		; A is new C0 Duration
+	lda AudioFrequency,X	; load freq
+	sta AUDF0		; and store in register
+	lda AudioControl,X	; load control
+	sta AUDC0		; and store in register
+	lda AudioVolume,X	; load volume
+	sta AUDV0		; and store in register
+	jmp .checkC1
+.stopC0
+	lda #0
+	sta durC0
+	sta AUDV0
+.checkC1
+	lda durC1		; load duration
+	beq .endSub		; if 0 do nothing
+	dec durC1		; decrement it
+	bne .endSub		; if not zero, no change
+	inc notePtrC1		; zero: move pointer to next note
+        ldx notePtrC1		; load note pointer to X
+	lda AudioDuration,X	; load next Duration
+	beq .stopC1		; if 0, stop this channel
+	cmp #$FF		; check if 255
+	bne .playC1		; if not, ready to load audio data
+	lda AudioFrequency,X	; if so, read frequency to get next note pointer
+	sta notePtrC1		; store in notePtrC1
+	tax			; and in x
+	lda AudioDuration,X	; load new Duration
+.playC1
+	sta durC1		; A is new C1 Duration
+	lda AudioFrequency,X	; load freq
+	sta AUDF1		; and store in register
+	lda AudioControl,X	; load control
+	sta AUDC1		; and store in register
+	lda AudioVolume,X	; load volume
+	sta AUDV1		; and store in register
+	jmp .endSub
+.stopC1
+	lda #0
+	sta durC1
+	sta AUDV1
+.endSub
+	rts
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;   end subroutines
 
@@ -763,6 +868,7 @@ LoadScrollPointers SUBROUTINE
 	include "digitTableRightRev.h"
 	include "digitTableLeftRev.h"
 	include "numberTables.h"
+	include "audioData.h"
 
 	org $fef6
 P0bitmap:
