@@ -1,0 +1,12 @@
+name: assemble
+on: [push]
+jobs:
+  dasm-usage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: wget https://github.com/dasm-assembler/dasm/releases/download/2.20.14/dasm-2.20.14-linux-x64.tar.gz
+      - run: tar -xzf dasm-2.20.14-linux-x64.tar.gz
+      - run: chmod 700 dasm
+      - run: ./dasm
+  
