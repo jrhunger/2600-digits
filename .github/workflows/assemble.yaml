@@ -9,4 +9,8 @@ jobs:
       - run: tar -xzf dasm-2.20.14-linux-x64.tar.gz
       - run: chmod 700 dasm
       - run: ./dasm *.asm -f3 -v0 -Lcart.lst -scart.sym -ocart.bin*.asm -f3 -v0 -Lcart.lst -scart.sym -ocart.bin
+      - uses: actions/upload-artifact@v2
+        with:
+          name: cart.bin
+          path: ./cart.bin
   
