@@ -874,14 +874,14 @@ SoundCheck SUBROUTINE
 P0bitmap:
 ;;; pi bitmap
 	byte #%00000000
-	byte #%11000010
+	byte #%01000010
 	byte #%00100101
 	byte #%00100100
 	byte #%00100100
 	byte #%00100100
 	byte #%00100100
-	byte #%00100100
-	byte #%11111111
+	byte #%10100100
+	byte #%01111111
 ;;; sqrt(2) bitmap
 /*
 	byte #%00000000
