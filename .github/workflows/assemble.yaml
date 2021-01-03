@@ -1,16 +1,25 @@
 name: assemble
 on: [push]
 jobs:
-  dasm-usage:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
-      - run: wget https://github.com/dasm-assembler/dasm/releases/download/2.20.14/dasm-2.20.14-linux-x64.tar.gz
-      - run: tar -xzf dasm-2.20.14-linux-x64.tar.gz
-      - run: chmod 700 dasm
-      - run: ./dasm *.asm -f3 -v0 -Lcart.lst -scart.sym -ocart.bin*.asm -f3 -v0 -Lcart.lst -scart.sym -ocart.bin
-      - uses: actions/upload-artifact@v2
+      - name: checkout code
+        uses: actions/checkout@v2
+      - name: download dasm
+        run: wget https://github.com/dasm-assembler/dasm/releases/download/2.20.14/dasm-2.20.14-linux-x64.tar.gz
+      - name: unpack dasm
+        run: tar -xzf dasm-2.20.14-linux-x64.tar.gz
+      - name: set executable
+        run: chmod 700 dasm
+      - name: assemble
+        run: ./dasm *.asm -f3 -v0 -Ldigits.lst -sdigits.sym -odigits.bin
+      - name: upload binaries to release
+        uses: svenstaro/uplaod-release-action@v2
         with:
-          name: cart.bin
-          path: ./cart.bin
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: digits.*
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
   
