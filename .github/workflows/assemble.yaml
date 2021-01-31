@@ -36,7 +36,6 @@ jobs:
           tag: current-main
           release_name: current-main
           body: "binary files for current state of main branch"
-          prerelease: true
           overwrite: true
           file_glob: true
       - name: upload binaries to created release
