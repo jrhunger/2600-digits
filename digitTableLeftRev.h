@@ -190,9 +190,9 @@ digitTableLeftRev:
 ; decimal
 	.byte %00000000;|    
 	.byte %00000000;|    
-	.byte %01000000;|    
-	.byte %01000000;|    
-	.byte %01000000;|    
+	.byte %01000000;| X  
+	.byte %01000000;| X  
+	.byte %01000000;| X   
 	.byte %00000000;|    
 	.byte %00000000;|    
 	.byte %00000000;|    
