@@ -17,8 +17,16 @@ jobs:
         run: chmod 700 dasm
       - name: assemble
         run: ./dasm *.asm -f3 -v0 -Ldigits.lst -sdigits.sym -odigits.bin
+      - name: delete latest release
+        if: ${{ github.event_name != 'release' }}
+        uses: dev-drprasad/delete-tag-and-release@v0.1.2
+        with:
+          delete_release: true
+          tag_name: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: upload binaries to latest release
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name != 'release' }}
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
