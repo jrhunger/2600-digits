@@ -17,14 +17,14 @@ jobs:
         run: chmod 700 dasm
       - name: assemble
         run: ./dasm *.asm -f3 -v0 -Ldigits.lst -sdigits.sym -odigits.bin
-#      - name: delete latest release
-#        if: ${{ github.event_name != 'release' }}
-#        uses: dev-drprasad/delete-tag-and-release@v0.1.2
-#        with:
-#          delete_release: true
-#          tag_name: last-push
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: delete last-push release
+        if: ${{ github.event_name != 'release' }}
+        uses: dev-drprasad/delete-tag-and-release@v0.1.2
+        with:
+          delete_release: true
+          tag_name: last-push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: upload binaries to last-push release
         if: ${{ github.event_name != 'release' }}
         uses: svenstaro/upload-release-action@v2
@@ -32,7 +32,8 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: digits.*
           tag: last-push
-          release_name: "files for last push"
+          release_name: "binaries for last push to any branch"
+          body: "from "${{ github.ref }}", ignore release commit"
           prerelease: true
           overwrite: true
           file_glob: true
