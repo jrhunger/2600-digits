@@ -396,17 +396,17 @@ P0xDone:
 
 ;;; P0 y bounds checking
 	lda P0y
-	cmp #8
+	cmp #10
 	beq P0yLow
-	cmp #PLAYAREALINES
+	cmp #PLAYAREALINES+1
 	beq P0yHigh
 	jmp P0yDone
 P0yLow:
-	lda #9
+	lda #11
 	sta P0y
 	jmp P0yDone
 P0yHigh:
-	lda #PLAYAREALINES-1
+	lda #PLAYAREALINES
 	sta P0y
 P0yDone:
 	
