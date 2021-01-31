@@ -1,5 +1,5 @@
 name: assemble
-on: [push]
+on: [push,release]
 jobs:
   build:
     runs-on: ubuntu-20.04
@@ -14,7 +14,8 @@ jobs:
         run: chmod 700 dasm
       - name: assemble
         run: ./dasm *.asm -f3 -v0 -Ldigits.lst -sdigits.sym -odigits.bin
-      - name: upload binaries to release
+      - name: upload binaries to latest release
+        if: ${{ github.event_name == 'push' }}
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -22,4 +23,12 @@ jobs:
           tag: latest
           overwrite: true
           file_glob: true
-  
+      - name: upload binaries to created release
+        if: ${{ github.event_name == 'release' && github.release.types == 'created' }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: digits.*
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
