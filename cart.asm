@@ -526,12 +526,8 @@ P0yDone:
 
 ;; initialize x
 	ldx #0
-;;; pick which loop
-	bit frameOdd
-	bvc .EvenLoop
-	jmp OddLoop
 
-.EvenLoop
+;;;; start playfield
 	DIGIT_L PF1, digitTableRight	; 0
 	DIGIT_L PF2, digitTableRightRev	; 1
 	DIGIT_L PF2, digitTableLeftRev	; 2
@@ -543,22 +539,7 @@ P0yDone:
 	DIGIT_L PF2, digitTableLeftRev	; 8
 	DIGIT_L PF2, digitTableRightRev	; 9
 	DIGIT_L PF1, digitTableRight	; 10
-	jmp Overscan
 
-;;;; start odd frame
-OddLoop
-	DIGIT_R PF1, digitTableRight	; 0
-	DIGIT_R PF1, digitTableLeft	; 1
-	DIGIT_R PF0, digitTableLeftRev	; 2
-	DIGIT_R PF2, digitTableLeftRev	; 3
-	DIGIT_R PF2, digitTableRightRev	; 4
-	DIGIT_R PF1, digitTableRight	; 5
-	DIGIT_R PF2, digitTableRightRev	; 6
-	DIGIT_R PF2, digitTableLeftRev	; 7
-	DIGIT_R PF0, digitTableLeftRev	; 8
-	DIGIT_R PF1, digitTableLeft	; 9
-	DIGIT_R PF1, digitTableRight	; 10
-	jmp Overscan
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; end kernel
 
